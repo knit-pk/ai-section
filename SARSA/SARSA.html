@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8" />
-<title>q-learning</title><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+<title>SARSA</title><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
 
 <style type="text/css">
@@ -11775,7 +11775,26 @@ div#notebook {
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Q-Table-learning">Q-Table learning<a class="anchor-link" href="#Q-Table-learning">&#182;</a></h2>
+<h2 id="SARSA---State&#8211;Action&#8211;Reward&#8211;State&#8211;Action">SARSA - State&#8211;Action&#8211;Reward&#8211;State&#8211;Action<a class="anchor-link" href="#SARSA---State&#8211;Action&#8211;Reward&#8211;State&#8211;Action">&#182;</a></h2><p>$$
+Q(s_t,a_t) = Q(s_t,a_t) + \alpha (r + \gamma Q(s_{t+1}, a_{t+1}) - Q(s_t,a_t))
+$$
+where<br>
+$ \alpha $ - step size (learning rate)<br>
+$ \gamma $ - discount factor<br>
+$ s_t $ - current state<br>
+$ s_{t+1} $ - next state <br>
+$ r $ - reward<br>
+$ a $ - action</p>
+<p>The Q-value depends on the current state of the agent $s_t$, the action the agent chooses $a_t$, the reward $r$ the agent gets for choosing this action, the state $s_{t+1}$ that the agent will now be in after taking that action, and finally the next action $a_{t+1}$ the agent will choose in its new state.</p>
+<h3 id="Comparing-Q-learning-and-SARSA">Comparing Q-learning and SARSA<a class="anchor-link" href="#Comparing-Q-learning-and-SARSA">&#182;</a></h3><p>SARSA
+$$
+Q(s_t,a_t) = Q(s_t,a_t) + \alpha (r + \gamma Q(s_{t+1}, a_{t+1}) - Q(s_t,a_t))
+$$
+Q-learning
+$$
+Q(s_t,a_t) = Q(s_t,a_t) + \alpha (r + \gamma \max_{a} Q(s_{t+1}, a) - Q(s_t,a_t))
+$$</p>
+<h3 id="Example---2000-episodes:">Example - 2000 episodes:<a class="anchor-link" href="#Example---2000-episodes:">&#182;</a></h3>
 </div>
 </div>
 </div>
@@ -11787,218 +11806,45 @@ div#notebook {
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">gym</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">time</span>
-</pre></div>
 
-</div>
-</div>
-</div>
+<span class="n">env</span> <span class="o">=</span> <span class="n">gym</span><span class="o">.</span><span class="n">make</span><span class="p">(</span><span class="s1">&#39;FrozenLake-v0&#39;</span><span class="p">)</span>
 
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div>
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Load-environment">Load environment<a class="anchor-link" href="#Load-environment">&#182;</a></h3>
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[13]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">env</span> <span class="o">=</span> <span class="n">gym</span><span class="o">.</span><span class="n">make</span><span class="p">(</span><span class="s1">&#39;FrozenLake-v0&#39;</span><span class="p">)</span>
-</pre></div>
-
-</div>
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div>
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Implement-Q-Table-learning-algorithm">Implement Q-Table learning algorithm<a class="anchor-link" href="#Implement-Q-Table-learning-algorithm">&#182;</a></h3>
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div>
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Temporal-difference:-(metoda-r&#243;&#380;nic-czasowych)">Temporal difference: (metoda r&#243;&#380;nic czasowych)<a class="anchor-link" href="#Temporal-difference:-(metoda-r&#243;&#380;nic-czasowych)">&#182;</a></h3><p>$$
-Q(s_t,a_t) = Q(s_t,a_t) + \alpha (r + \gamma \max_{a} Q(s_{t+1}, a) - Q(s_t,a_t))
-$$
-where<br>
-$ \alpha $ - step size (learning rate)<br>
-$ \gamma $ - discount factor<br>
-$ s_t $ - current state<br>
-$ s_{t+1} $ - next state <br>
-$ r $ - reward<br>
-$ a $ - action</p>
-
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[14]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1">#Initialize table with all zeros</span>
-<span class="n">Q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">env</span><span class="o">.</span><span class="n">observation_space</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="n">env</span><span class="o">.</span><span class="n">action_space</span><span class="o">.</span><span class="n">n</span><span class="p">])</span>
-<span class="c1">#size of Q table</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">Q</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-</pre></div>
-
-</div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-<div class="prompt"></div>
-
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>(64, 4)
-</pre>
-</div>
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div>
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Simple-example">Simple example<a class="anchor-link" href="#Simple-example">&#182;</a></h3>
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[6]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">a</span> <span class="o">=</span> <span class="o">.</span><span class="mi">8</span> <span class="c1">#alpha</span>
+<span class="n">a</span> <span class="o">=</span> <span class="o">.</span><span class="mi">8</span> <span class="c1">#alpha</span>
 <span class="n">y</span> <span class="o">=</span> <span class="o">.</span><span class="mi">95</span> <span class="c1">#gamma</span>
+<span class="n">num_episodes</span> <span class="o">=</span> <span class="mi">2000</span>
 <span class="n">Q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">env</span><span class="o">.</span><span class="n">observation_space</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="n">env</span><span class="o">.</span><span class="n">action_space</span><span class="o">.</span><span class="n">n</span><span class="p">])</span>
-<span class="c1">#reset environment, state = 0</span>
-<span class="n">state</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
-    
-<span class="n">reward</span> <span class="o">=</span> <span class="mi">0</span>
-<span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
-<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">):</span>
-        
-    <span class="c1">#choose action by greedily (with noise) picking from Q table (max value of current state)</span>
-    <span class="n">action</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">Q</span><span class="p">[</span><span class="n">state</span><span class="p">,:]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">env</span><span class="o">.</span><span class="n">action_space</span><span class="o">.</span><span class="n">n</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="mf">1.</span><span class="o">/</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)))</span>
-
-    <span class="c1">#get new state and reward from environment</span>
-    <span class="n">next_state</span><span class="p">,</span> <span class="n">reward</span><span class="p">,</span> <span class="n">done</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
-        
-    <span class="c1">#update Q-Table with new knowledge</span>
-    <span class="n">Q</span><span class="p">[</span><span class="n">state</span><span class="p">,</span> <span class="n">action</span><span class="p">]</span> <span class="o">=</span> <span class="n">Q</span><span class="p">[</span><span class="n">state</span><span class="p">,</span> <span class="n">action</span><span class="p">]</span> <span class="o">+</span> <span class="n">a</span><span class="o">*</span><span class="p">(</span><span class="n">reward</span> <span class="o">+</span> <span class="n">y</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">Q</span><span class="p">[</span><span class="n">next_state</span><span class="p">,:])</span> <span class="o">-</span> <span class="n">Q</span><span class="p">[</span><span class="n">state</span><span class="p">,</span> <span class="n">action</span><span class="p">])</span>
-        
-    <span class="c1">#update current state</span>
-    <span class="n">state</span> <span class="o">=</span> <span class="n">next_state</span>
-       
-    <span class="k">if</span> <span class="n">done</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
-        <span class="k">break</span>
-
-<span class="n">env</span><span class="o">.</span><span class="n">render</span><span class="p">()</span>
-</pre></div>
-
-</div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-<div class="prompt"></div>
-
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>  (Down)
-SFFF
-F<span class="ansi-red-bg">H</span>FH
-FFFH
-HFFG
-</pre>
-</div>
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div>
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Example---one-episode:">Example - one episode:<a class="anchor-link" href="#Example---one-episode:">&#182;</a></h3>
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[9]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">a</span> <span class="o">=</span> <span class="o">.</span><span class="mi">8</span> <span class="c1">#alpha</span>
-<span class="n">y</span> <span class="o">=</span> <span class="o">.</span><span class="mi">95</span> <span class="c1">#gamma</span>
-<span class="n">Q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">env</span><span class="o">.</span><span class="n">observation_space</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="n">env</span><span class="o">.</span><span class="n">action_space</span><span class="o">.</span><span class="n">n</span><span class="p">])</span>
-<span class="n">num_episodes</span> <span class="o">=</span> <span class="mi">1</span>
 
 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_episodes</span><span class="p">):</span>
-    <span class="c1">#reset environment, state = 0</span>
-    <span class="n">state</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
-    
-    <span class="n">reward</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="n">total_reward</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">visited_states</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">]</span>
     <span class="n">choosed_actions</span> <span class="o">=</span> <span class="p">[]</span>
+    
+    <span class="n">current_state</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+    <span class="n">current_action</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">Q</span><span class="p">[</span><span class="n">current_state</span><span class="p">,:])</span>
     <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">):</span>
         
-        <span class="c1">#choose action by greedily (with noise) picking from Q table (max value of current state)</span>
-        <span class="n">action</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">Q</span><span class="p">[</span><span class="n">state</span><span class="p">,:]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">env</span><span class="o">.</span><span class="n">action_space</span><span class="o">.</span><span class="n">n</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="mf">1.</span><span class="o">/</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)))</span>
+        <span class="n">next_state</span><span class="p">,</span> <span class="n">reward</span><span class="p">,</span> <span class="n">done</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">current_action</span><span class="p">)</span>
         
-        <span class="c1">#get new state and reward from environment</span>
-        <span class="n">next_state</span><span class="p">,</span> <span class="n">reward</span><span class="p">,</span> <span class="n">done</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
+        <span class="n">next_action</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">Q</span><span class="p">[</span><span class="n">next_state</span><span class="p">,:]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">env</span><span class="o">.</span><span class="n">action_space</span><span class="o">.</span><span class="n">n</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="mf">1.</span><span class="o">/</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)))</span>
         
-        <span class="c1">#update Q-Table with new knowledge</span>
-        <span class="n">Q</span><span class="p">[</span><span class="n">state</span><span class="p">,</span> <span class="n">action</span><span class="p">]</span> <span class="o">=</span> <span class="n">Q</span><span class="p">[</span><span class="n">state</span><span class="p">,</span> <span class="n">action</span><span class="p">]</span> <span class="o">+</span> <span class="n">a</span><span class="o">*</span><span class="p">(</span><span class="n">reward</span> <span class="o">+</span> <span class="n">y</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">Q</span><span class="p">[</span><span class="n">next_state</span><span class="p">,:])</span> <span class="o">-</span> <span class="n">Q</span><span class="p">[</span><span class="n">state</span><span class="p">,</span> <span class="n">action</span><span class="p">])</span>
+        <span class="n">Q</span><span class="p">[</span><span class="n">current_state</span><span class="p">,</span> <span class="n">current_action</span><span class="p">]</span> <span class="o">+=</span> <span class="n">a</span><span class="o">*</span><span class="p">(</span><span class="n">reward</span> <span class="o">+</span> <span class="n">y</span><span class="o">*</span><span class="n">Q</span><span class="p">[</span><span class="n">next_state</span><span class="p">,</span> <span class="n">next_action</span><span class="p">]</span> <span class="o">-</span> <span class="n">Q</span><span class="p">[</span><span class="n">current_state</span><span class="p">,</span> <span class="n">current_action</span><span class="p">])</span>
         
-        <span class="c1">#update current state</span>
-        <span class="n">state</span> <span class="o">=</span> <span class="n">next_state</span>
-        
-        <span class="n">visited_states</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+        <span class="n">visited_states</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">current_state</span><span class="p">)</span>
         <span class="n">choosed_actions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
         <span class="p">{</span>
             <span class="mi">0</span> <span class="p">:</span> <span class="s1">&#39;l&#39;</span><span class="p">,</span>
             <span class="mi">1</span> <span class="p">:</span> <span class="s1">&#39;d&#39;</span><span class="p">,</span>
             <span class="mi">2</span> <span class="p">:</span> <span class="s1">&#39;r&#39;</span><span class="p">,</span>
             <span class="mi">3</span> <span class="p">:</span> <span class="s1">&#39;u&#39;</span>
-        <span class="p">}[</span><span class="n">action</span><span class="p">])</span>
-        <span class="n">total_reward</span> <span class="o">+=</span> <span class="n">reward</span>        
+        <span class="p">}[</span><span class="n">current_action</span><span class="p">])</span>
+        
+        <span class="n">current_state</span> <span class="o">=</span> <span class="n">next_state</span>
+        <span class="n">current_action</span> <span class="o">=</span> <span class="n">next_action</span>
         
         <span class="k">if</span> <span class="n">done</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
             <span class="k">break</span>
 
 <span class="n">choosed_actions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Visited states and actions:&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Last visited states and actions:&#39;</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">visited_states</span><span class="p">,</span> <span class="n">choosed_actions</span><span class="p">]))</span>
 <span class="nb">print</span><span class="p">()</span>
 <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Last move:&#39;</span><span class="p">)</span>
@@ -12007,96 +11853,7 @@ HFFG
 <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Numbers representing states:&#39;</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">16</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
 <span class="nb">print</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Total reward: &#39;</span><span class="p">,</span><span class="n">total_reward</span><span class="p">)</span>
-</pre></div>
-
-</div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-<div class="prompt"></div>
-
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>Visited states and actions:
-[[&#39;0&#39; &#39;0&#39; &#39;0&#39; &#39;0&#39; &#39;0&#39; &#39;0&#39; &#39;0&#39; &#39;4&#39; &#39;0&#39; &#39;4&#39; &#39;0&#39; &#39;0&#39; &#39;4&#39; &#39;5&#39;]
- [&#39;d&#39; &#39;u&#39; &#39;l&#39; &#39;u&#39; &#39;d&#39; &#39;l&#39; &#39;d&#39; &#39;l&#39; &#39;l&#39; &#39;l&#39; &#39;d&#39; &#39;d&#39; &#39;u&#39; &#39;-&#39;]]
-
-Last move:
-  (Up)
-SFFF
-F<span class="ansi-red-bg">H</span>FH
-FFFH
-HFFG
-
-Numbers representing states:
-[[ 0  1  2  3]
- [ 4  5  6  7]
- [ 8  9 10 11]
- [12 13 14 15]]
-
-Total reward:  0.0
-</pre>
-</div>
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div>
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<p>We add noise when choosing action, because in this environment we don't have penalties for jumping into the hole (H state). Without noise the agent would always choose to go left (np.argmax() returns first occurance of the max value, so at the beginning when all values for states are zeros [0, 0, 0, 0], it returns index 0 all the time - which corresponds to going left).</p>
-
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div>
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Example---2000-episodes:">Example - 2000 episodes:<a class="anchor-link" href="#Example---2000-episodes:">&#182;</a></h3>
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[18]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">a</span> <span class="o">=</span> <span class="o">.</span><span class="mi">8</span> <span class="c1">#alpha</span>
-<span class="n">y</span> <span class="o">=</span> <span class="o">.</span><span class="mi">95</span> <span class="c1">#gamma</span>
-<span class="n">Q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">env</span><span class="o">.</span><span class="n">observation_space</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="n">env</span><span class="o">.</span><span class="n">action_space</span><span class="o">.</span><span class="n">n</span><span class="p">])</span>
-<span class="n">num_episodes</span> <span class="o">=</span> <span class="mi">2000</span>
-<span class="n">rList</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1">#reward list</span>
-<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_episodes</span><span class="p">):</span>
-    <span class="n">state</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
-    
-    <span class="n">reward</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="n">total_reward</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">):</span>
-        <span class="n">action</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">Q</span><span class="p">[</span><span class="n">state</span><span class="p">,:]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">env</span><span class="o">.</span><span class="n">action_space</span><span class="o">.</span><span class="n">n</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="mf">1.</span><span class="o">/</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)))</span>
-        <span class="n">next_state</span><span class="p">,</span> <span class="n">reward</span><span class="p">,</span> <span class="n">done</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
-        <span class="n">Q</span><span class="p">[</span><span class="n">state</span><span class="p">,</span> <span class="n">action</span><span class="p">]</span> <span class="o">=</span> <span class="n">Q</span><span class="p">[</span><span class="n">state</span><span class="p">,</span> <span class="n">action</span><span class="p">]</span> <span class="o">+</span> <span class="n">a</span><span class="o">*</span><span class="p">(</span><span class="n">reward</span> <span class="o">+</span> <span class="n">y</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">Q</span><span class="p">[</span><span class="n">next_state</span><span class="p">,:])</span> <span class="o">-</span> <span class="n">Q</span><span class="p">[</span><span class="n">state</span><span class="p">,</span> <span class="n">action</span><span class="p">])</span>
-        
-        <span class="n">state</span> <span class="o">=</span> <span class="n">next_state</span>
-        
-        <span class="n">total_reward</span> <span class="o">+=</span> <span class="n">reward</span>        
-        
-        <span class="k">if</span> <span class="n">done</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
-            <span class="k">break</span>
-    <span class="n">rList</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">total_reward</span><span class="p">)</span>
-    
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Score over time: &quot;</span> <span class="o">+</span>  <span class="nb">str</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">rList</span><span class="p">)</span><span class="o">/</span><span class="n">num_episodes</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Q-table:&#39;</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">Q</span><span class="p">)</span>
 </pre></div>
 
@@ -12114,293 +11871,40 @@ Total reward:  0.0
 
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Score over time: 0.3145
-[[  5.47242497e-03   1.64380106e-02   3.44985731e-03   3.55635773e-03]
- [  3.69935640e-03   1.07043186e-02   4.18476117e-03   4.03424938e-03]
- [  4.91803121e-03   3.66555311e-03   1.84080681e-02   5.42968722e-03]
- [  4.67001998e-03   5.61678111e-03   2.28697383e-02   5.16714092e-03]
- [  6.27364959e-03   2.79517949e-02   6.37674690e-03   6.48952878e-03]
- [  7.71494947e-03   6.40672575e-02   7.73014170e-03   7.57673767e-03]
- [  9.54639819e-03   1.01832302e-02   3.94130224e-02   9.27751106e-03]
- [  1.14019560e-02   1.29669237e-01   1.14440939e-02   1.10398678e-02]
- [  3.29096158e-03   5.60967829e-03   3.89244651e-03   7.92581588e-03]
- [  3.35113000e-03   1.10550432e-02   3.65395178e-03   5.01587648e-03]
- [  2.62990967e-03   1.79701144e-03   2.75506661e-03   1.98420965e-02]
- [  1.39901590e-03   1.81035835e-03   1.52985356e-03   2.56177184e-02]
- [  3.71722008e-03   3.21263960e-03   3.88193369e-03   2.93269683e-02]
- [  5.46819860e-03   4.71040083e-03   7.74951541e-03   4.82542792e-02]
- [  8.80008760e-03   9.21767549e-02   6.41652659e-03   9.95519074e-03]
- [  1.20151549e-02   8.89538181e-02   1.27136482e-02   5.41465652e-03]
- [  5.46939544e-03   3.36900738e-03   3.64094694e-03   1.05343823e-02]
- [  2.64029816e-03   2.56044854e-03   3.08772276e-03   8.32424440e-03]
- [  1.04844955e-02   2.09015796e-04   4.52557592e-04   5.78253839e-05]
+<pre>Last visited states and actions:
+[[&#39;0&#39; &#39;0&#39; &#39;0&#39; &#39;4&#39; &#39;4&#39; &#39;8&#39; &#39;8&#39; &#39;8&#39; &#39;9&#39; &#39;8&#39; &#39;9&#39; &#39;13&#39; &#39;13&#39; &#39;14&#39;]
+ [&#39;l&#39; &#39;l&#39; &#39;l&#39; &#39;l&#39; &#39;u&#39; &#39;u&#39; &#39;u&#39; &#39;d&#39; &#39;u&#39; &#39;d&#39; &#39;r&#39; &#39;r&#39; &#39;u&#39; &#39;-&#39;]]
+
+Last move:
+  (Up)
+SFFF
+FHFH
+FFFH
+HFF<span class="ansi-red-bg">G</span>
+
+Numbers representing states:
+[[ 0  1  2  3]
+ [ 4  5  6  7]
+ [ 8  9 10 11]
+ [12 13 14 15]]
+
+Q-table:
+[[  9.84857068e-02   3.81064777e-04   4.25934352e-04   2.71681067e-04]
+ [  1.55885969e-03   1.20787031e-04   8.49505224e-05   9.99091620e-02]
+ [  1.80585779e-01   2.89716854e-05   4.10769756e-04   3.77641859e-04]
+ [  5.89198625e-06   1.21873822e-04   6.71749217e-05   2.16134593e-06]
+ [  6.37015446e-02   5.20212186e-04   1.99713651e-04   1.33293168e-03]
  [  0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00]
- [  6.02620795e-04   3.73043473e-05   4.77334668e-02   1.75518883e-04]
- [  1.66189006e-03   3.26030722e-03   2.02481846e-03   7.70480314e-03]
- [  9.77599323e-03   1.18247329e-02   1.47975904e-01   6.28914480e-03]
- [  9.33103924e-02   1.77750502e-03   1.61922989e-02   1.35248019e-02]
- [  2.97416604e-03   3.04043861e-03   3.31956285e-03   7.95060159e-03]
- [  1.07804554e-03   9.89041554e-04   8.14478126e-03   1.22631924e-03]
- [  1.01112304e-02   2.41325537e-04   3.55678870e-04   8.72783483e-04]
- [  2.98086364e-06   3.43762074e-04   1.19015171e-05   7.44029659e-05]
- [  4.06286414e-04   9.34516614e-05   8.16194906e-04   4.36088675e-04]
+ [  3.47444063e-06   2.49835288e-09   1.87561714e-04   7.91550829e-07]
  [  0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00]
- [  2.01689099e-03   4.35537072e-04   1.25973789e-01   3.78752211e-04]
- [  1.37676498e-03   2.20837602e-02   3.81348009e-01   7.80157933e-03]
- [  2.08341906e-03   1.93396922e-03   2.01161013e-03   1.98087069e-03]
- [  4.37712728e-04   1.59125265e-04   8.63693505e-07   1.98399651e-02]
- [  6.68961108e-05   8.53912505e-05   2.20577756e-07   1.65889122e-03]
- [  0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00]
- [  2.75904793e-04   3.36422233e-04   5.85382876e-03   1.58493531e-03]
- [  1.06233466e-03   1.87770683e-02   4.12555239e-04   4.67546074e-04]
- [  5.02190700e-04   2.82602447e-06   2.14848911e-03   8.81407692e-02]
- [  1.14267521e-03   9.58546994e-03   6.63213824e-01   7.74158915e-03]
- [  1.73544373e-03   1.62886700e-03   6.07282038e-04   1.43686999e-04]
+ [  2.62351523e-04   6.60937443e-05   2.58062127e-05   7.90674016e-02]
+ [  2.11931543e-04   5.88325406e-01   1.11575138e-03   1.09658886e-03]
+ [  6.03355705e-01   2.50445246e-04   8.06735774e-04   0.00000000e+00]
  [  0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00]
  [  0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00]
- [  6.43227775e-11   8.32226806e-05   1.82807950e-04   5.66181741e-04]
- [  2.17233307e-04   4.24943183e-04   5.50872285e-03   8.08229793e-04]
- [  6.19687554e-03   1.08960397e-03   1.04170028e-03   1.35677661e-05]
- [  0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00]
- [  2.60128569e-04   5.58461066e-03   8.22808812e-01   2.14666597e-04]
- [  1.55908437e-03   4.31643004e-05   3.54145223e-04   2.20629903e-04]
- [  0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00]
- [  6.20485210e-06   0.00000000e+00   2.67883099e-05   0.00000000e+00]
- [  8.67523199e-05   2.03591155e-05   5.52765544e-05   5.17253286e-05]
- [  0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00]
- [  1.44116773e-03   4.75990874e-04   3.97882016e-03   1.71201143e-03]
- [  0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00]
- [  1.17923483e-04   5.90578490e-05   9.70541606e-01   8.96218471e-05]
- [  1.78071589e-03   4.96525692e-04   7.30565298e-04   1.47763689e-03]
- [  4.29283627e-04   3.29710472e-04   3.84230118e-05   2.64469069e-04]
- [  3.46069856e-04   3.91885396e-05   2.41973551e-05   1.14509994e-06]
- [  0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00]
- [  2.15263268e-05   2.15251291e-04   1.39976124e-02   0.00000000e+00]
- [  0.00000000e+00   6.08854330e-01   0.00000000e+00   0.00000000e+00]
- [  0.00000000e+00   0.00000000e+00   9.60063878e-01   0.00000000e+00]
+ [  4.94398045e-05   3.47205556e-05   8.47419994e-01   1.08750438e-03]
+ [  0.00000000e+00   0.00000000e+00   0.00000000e+00   9.84983895e-01]
  [  0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00]]
-</pre>
-</div>
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div>
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Numpy-stuff">Numpy stuff<a class="anchor-link" href="#Numpy-stuff">&#182;</a></h2><h3 id="What-Q[state,-:]-means?">What Q[state, :] means?<a class="anchor-link" href="#What-Q[state,-:]-means?">&#182;</a></h3><p><strong>Python slice notation</strong><br>
-Given an array "a":</p>
-<div class="highlight"><pre><span></span><span class="n">a</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span> <span class="c1"># items start through end-1</span>
-<span class="n">a</span><span class="p">[</span><span class="n">start</span><span class="p">:]</span>    <span class="c1"># items start through the rest of the array</span>
-<span class="n">a</span><span class="p">[:</span><span class="n">end</span><span class="p">]</span>      <span class="c1"># items from the beginning through end-1</span>
-<span class="n">a</span><span class="p">[:]</span>         <span class="c1"># a copy of the whole array</span>
-
-<span class="n">a</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">:</span><span class="n">step</span><span class="p">]</span> <span class="c1"># start through not past end, by step</span>
-</pre></div>
-<p>Let's consider we have a matrices like this:</p>
-
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[57]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">],[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">]])</span>
-<span class="n">B</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]])</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">B</span><span class="p">)</span>
-</pre></div>
-
-</div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-<div class="prompt"></div>
-
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>[[1 1 1]
- [2 2 2]
- [3 3 3]]
-
-[[1 2 3]
- [1 2 3]
- [1 2 3]]
-</pre>
-</div>
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div>
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<p>Getting a "slice" of array means to get subarray.</p>
-
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[61]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1">#get first row</span>
-<span class="n">subA</span> <span class="o">=</span> <span class="n">A</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span>
-<span class="c1">#first argument is row number - 1st row (0 indexed array)</span>
-<span class="c1">#second argument is column numbers - &quot;:&quot; means every column</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">subA</span><span class="p">)</span>
-</pre></div>
-
-</div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-<div class="prompt"></div>
-
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>[1 1 1]
-</pre>
-</div>
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[62]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1">#get first two columns</span>
-<span class="n">subB</span> <span class="o">=</span> <span class="n">B</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
-<span class="c1"># 0:2 - means column [0, 2) - column 0 to 2, without 2</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">subB</span><span class="p">)</span>
-</pre></div>
-
-</div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-<div class="prompt"></div>
-
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>[[1 2]
- [1 2]
- [1 2]]
-</pre>
-</div>
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div>
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="np.argmax(a,-axis=None,-out=None)">np.argmax(a, axis=None, out=None)<a class="anchor-link" href="#np.argmax(a,-axis=None,-out=None)">&#182;</a></h3><p>Returns the indices of the maximum values along an axis.</p>
-
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[70]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">],[</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">16</span><span class="p">]])</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">array</span><span class="p">)</span>
-</pre></div>
-
-</div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-<div class="prompt"></div>
-
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>[[ 1  3  2]
- [ 3  4 16]]
-</pre>
-</div>
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[71]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">array</span><span class="p">[</span><span class="mi">0</span><span class="p">,:])</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">array</span><span class="p">[</span><span class="mi">0</span><span class="p">,:])</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;max value in first row on index: &#39;</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">()</span>
-<span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">array</span><span class="p">[</span><span class="mi">1</span><span class="p">,:])</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">array</span><span class="p">[</span><span class="mi">1</span><span class="p">,:])</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;max value in second row on index: &#39;</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span>
-</pre></div>
-
-</div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-<div class="prompt"></div>
-
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>[1 3 2]
-max value in first row on index:  1
-
-[ 3  4 16]
-max value in second row on index:  2
 </pre>
 </div>
 </div>
