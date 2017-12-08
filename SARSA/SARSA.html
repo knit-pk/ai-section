@@ -11771,6 +11771,21 @@ div#notebook {
   <div tabindex="-1" id="notebook" class="border-box-sizing">
     <div class="container" id="notebook-container">
 
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[1]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">gym</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">time</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div>
 <div class="inner_cell">
@@ -11794,20 +11809,98 @@ Q-learning
 $$
 Q(s_t,a_t) = Q(s_t,a_t) + \alpha (r + \gamma \max_{a} Q(s_{t+1}, a) - Q(s_t,a_t))
 $$</p>
-<h3 id="Example---2000-episodes:">Example - 2000 episodes:<a class="anchor-link" href="#Example---2000-episodes:">&#182;</a></h3>
+<p>The major difference between SARSA and Q-Learning, is that the maximum reward for the next state is not necessarily used for updating the Q-values. Instead, a new action, and therefore reward, is selected using the same policy that determined the original action.</p>
+<h3 id="Example-1:">Example 1:<a class="anchor-link" href="#Example-1:">&#182;</a></h3>
 </div>
 </div>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[12]:</div>
+<div class="prompt input_prompt">In&nbsp;[6]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">gym</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">time</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">env</span> <span class="o">=</span> <span class="n">gym</span><span class="o">.</span><span class="n">make</span><span class="p">(</span><span class="s1">&#39;FrozenLake-v0&#39;</span><span class="p">)</span>
 
-<span class="n">env</span> <span class="o">=</span> <span class="n">gym</span><span class="o">.</span><span class="n">make</span><span class="p">(</span><span class="s1">&#39;FrozenLake-v0&#39;</span><span class="p">)</span>
+<span class="n">a</span> <span class="o">=</span> <span class="o">.</span><span class="mi">8</span> <span class="c1">#alpha</span>
+<span class="n">y</span> <span class="o">=</span> <span class="o">.</span><span class="mi">95</span> <span class="c1">#gamma</span>
+<span class="n">num_episodes</span> <span class="o">=</span> <span class="mi">2000</span>
+<span class="n">Q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">env</span><span class="o">.</span><span class="n">observation_space</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="n">env</span><span class="o">.</span><span class="n">action_space</span><span class="o">.</span><span class="n">n</span><span class="p">])</span>
+
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_episodes</span><span class="p">):</span>
+    
+    <span class="n">current_state</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+    <span class="n">current_action</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">Q</span><span class="p">[</span><span class="n">current_state</span><span class="p">,:])</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">):</span>
+        
+        <span class="n">next_state</span><span class="p">,</span> <span class="n">reward</span><span class="p">,</span> <span class="n">done</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">current_action</span><span class="p">)</span>
+        
+        <span class="n">next_action</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">Q</span><span class="p">[</span><span class="n">next_state</span><span class="p">,:]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">env</span><span class="o">.</span><span class="n">action_space</span><span class="o">.</span><span class="n">n</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="mf">1.</span><span class="o">/</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)))</span>
+        
+        <span class="n">Q</span><span class="p">[</span><span class="n">current_state</span><span class="p">,</span> <span class="n">current_action</span><span class="p">]</span> <span class="o">+=</span> <span class="n">a</span><span class="o">*</span><span class="p">(</span><span class="n">reward</span> <span class="o">+</span> <span class="n">y</span><span class="o">*</span><span class="n">Q</span><span class="p">[</span><span class="n">next_state</span><span class="p">,</span> <span class="n">next_action</span><span class="p">]</span> <span class="o">-</span> <span class="n">Q</span><span class="p">[</span><span class="n">current_state</span><span class="p">,</span> <span class="n">current_action</span><span class="p">])</span>
+        
+        <span class="n">current_state</span> <span class="o">=</span> <span class="n">next_state</span>
+        <span class="n">current_action</span> <span class="o">=</span> <span class="n">next_action</span>
+        
+        <span class="k">if</span> <span class="n">done</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">break</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Q-table:&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">Q</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+
+<div class="prompt"></div>
+
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Q-table:
+[[  2.96856986e-01   2.40164072e-04   5.95337846e-04   4.86136204e-04]
+ [  1.52752606e-05   1.16452456e-03   7.23610020e-04   6.56125509e-02]
+ [  1.72521667e-04   7.07783616e-02   1.83614554e-04   8.31396591e-04]
+ [  5.09110558e-06   4.00247793e-08   1.20667714e-04   6.38800679e-02]
+ [  1.99064756e-01   1.17901438e-03   3.53596104e-04   9.98988802e-05]
+ [  0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00]
+ [  1.71808538e-05   1.04510488e-04   1.50176370e-02   1.35763732e-08]
+ [  0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00]
+ [  2.09330533e-04   1.29270101e-04   4.62964037e-04   1.03072295e-01]
+ [  0.00000000e+00   5.52217798e-01   1.78927846e-03   3.71852679e-05]
+ [  7.49010963e-02   9.44015147e-05   0.00000000e+00   2.68498075e-04]
+ [  0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00]
+ [  0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00]
+ [  0.00000000e+00   0.00000000e+00   3.43941442e-01   4.28438328e-05]
+ [  0.00000000e+00   0.00000000e+00   0.00000000e+00   8.15572090e-01]
+ [  0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00]]
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="Example-2:">Example 2:<a class="anchor-link" href="#Example-2:">&#182;</a></h3>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[16]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">env</span> <span class="o">=</span> <span class="n">gym</span><span class="o">.</span><span class="n">make</span><span class="p">(</span><span class="s1">&#39;FrozenLake-v0&#39;</span><span class="p">)</span>
 
 <span class="n">a</span> <span class="o">=</span> <span class="o">.</span><span class="mi">8</span> <span class="c1">#alpha</span>
 <span class="n">y</span> <span class="o">=</span> <span class="o">.</span><span class="mi">95</span> <span class="c1">#gamma</span>
@@ -11872,11 +11965,11 @@ $$</p>
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>Last visited states and actions:
-[[&#39;0&#39; &#39;0&#39; &#39;0&#39; &#39;4&#39; &#39;4&#39; &#39;8&#39; &#39;8&#39; &#39;8&#39; &#39;9&#39; &#39;8&#39; &#39;9&#39; &#39;13&#39; &#39;13&#39; &#39;14&#39;]
- [&#39;l&#39; &#39;l&#39; &#39;l&#39; &#39;l&#39; &#39;u&#39; &#39;u&#39; &#39;u&#39; &#39;d&#39; &#39;u&#39; &#39;d&#39; &#39;r&#39; &#39;r&#39; &#39;u&#39; &#39;-&#39;]]
+[[&#39;0&#39; &#39;0&#39; &#39;0&#39; &#39;0&#39; &#39;0&#39; &#39;4&#39; &#39;4&#39; &#39;8&#39; &#39;4&#39; &#39;8&#39; &#39;9&#39; &#39;13&#39; &#39;14&#39;]
+ [&#39;l&#39; &#39;l&#39; &#39;l&#39; &#39;l&#39; &#39;l&#39; &#39;l&#39; &#39;u&#39; &#39;l&#39; &#39;u&#39; &#39;d&#39; &#39;r&#39; &#39;r&#39; &#39;-&#39;]]
 
 Last move:
-  (Up)
+  (Right)
 SFFF
 FHFH
 FFFH
@@ -11889,21 +11982,21 @@ Numbers representing states:
  [12 13 14 15]]
 
 Q-table:
-[[  9.84857068e-02   3.81064777e-04   4.25934352e-04   2.71681067e-04]
- [  1.55885969e-03   1.20787031e-04   8.49505224e-05   9.99091620e-02]
- [  1.80585779e-01   2.89716854e-05   4.10769756e-04   3.77641859e-04]
- [  5.89198625e-06   1.21873822e-04   6.71749217e-05   2.16134593e-06]
- [  6.37015446e-02   5.20212186e-04   1.99713651e-04   1.33293168e-03]
+[[  4.64472731e-01   3.61962284e-05   1.43738625e-04   7.08616356e-05]
+ [  1.31054962e-04   7.61097995e-04   2.12605914e-04   1.72647706e-01]
+ [  2.06265009e-04   2.34825148e-01   7.40766980e-04   7.07559250e-04]
+ [  6.37087438e-05   9.32407378e-04   1.56706556e-04   1.10325793e-01]
+ [  6.33070719e-01   1.03994546e-04   2.17606301e-05   1.00200350e-04]
  [  0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00]
- [  3.47444063e-06   2.49835288e-09   1.87561714e-04   7.91550829e-07]
+ [  5.50441975e-05   6.23260959e-08   3.11330846e-02   1.97457558e-07]
  [  0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00]
- [  2.62351523e-04   6.60937443e-05   2.58062127e-05   7.90674016e-02]
- [  2.11931543e-04   5.88325406e-01   1.11575138e-03   1.09658886e-03]
- [  6.03355705e-01   2.50445246e-04   8.06735774e-04   0.00000000e+00]
+ [  4.73826368e-04   1.01255101e-03   1.17546810e-03   7.56133544e-01]
+ [  2.25749240e-03   5.42136319e-01   1.11496939e-03   6.02467326e-07]
+ [  1.38233774e-01   2.37917152e-04   9.26731040e-04   0.00000000e+00]
  [  0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00]
  [  0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00]
- [  4.94398045e-05   3.47205556e-05   8.47419994e-01   1.08750438e-03]
- [  0.00000000e+00   0.00000000e+00   0.00000000e+00   9.84983895e-01]
+ [  0.00000000e+00   0.00000000e+00   2.21784295e-01   0.00000000e+00]
+ [  0.00000000e+00   0.00000000e+00   8.32205446e-01   0.00000000e+00]
  [  0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00]]
 </pre>
 </div>
@@ -11912,6 +12005,18 @@ Q-table:
 </div>
 </div>
 
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="References">References<a class="anchor-link" href="#References">&#182;</a></h3><ul>
+<li><a href="http://www.cse.unsw.edu.au/~cs9417ml/RL1/algorithms.html">http://www.cse.unsw.edu.au/~cs9417ml/RL1/algorithms.html</a></li>
+<li><a href="https://studywolf.wordpress.com/2013/07/01/reinforcement-learning-sarsa-vs-q-learning/">https://studywolf.wordpress.com/2013/07/01/reinforcement-learning-sarsa-vs-q-learning/</a></li>
+</ul>
+
+</div>
+</div>
 </div>
     </div>
   </div>
